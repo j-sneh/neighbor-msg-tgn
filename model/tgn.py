@@ -68,7 +68,10 @@ class TGN(torch.nn.Module):
                                                        device=device)
       self.message_function = get_message_function(module_type=message_function,
                                                    raw_message_dimension=raw_message_dimension,
-                                                   message_dimension=message_dimension)
+                                                   message_dimension=message_dimension, 
+                                                   memory_dimension=self.memory_dimension,
+                                                   neighbor_finder=self.neighbor_finder,
+                                                   device=self.device)
       self.memory_updater = get_memory_updater(module_type=memory_updater_type,
                                                memory=self.memory,
                                                message_dimension=message_dimension,
@@ -226,7 +229,7 @@ class TGN(torch.nn.Module):
         messages)
 
     if len(unique_nodes) > 0:
-      unique_messages = self.message_function.compute_message(unique_messages)
+      unique_messages = self.message_function.compute_message(unique_messages, unique_nodes, unique_timestamps, self.memory)
 
     # Update the memory with the aggregated messages
     self.memory_updater.update_memory(unique_nodes, unique_messages,
@@ -240,7 +243,7 @@ class TGN(torch.nn.Module):
         messages)
 
     if len(unique_nodes) > 0:
-      unique_messages = self.message_function.compute_message(unique_messages)
+      unique_messages = self.message_function.compute_message(unique_messages, unique_nodes, unique_timestamps, self.memory)
 
     updated_memory, updated_last_update = self.memory_updater.get_updated_memory(unique_nodes,
                                                                                  unique_messages,
@@ -264,7 +267,7 @@ class TGN(torch.nn.Module):
 
     source_message = torch.cat([source_memory, destination_memory, edge_features,
                                 source_time_delta_encoding],
-                               dim=1)
+                               dim=1) # important, come back to this
     messages = defaultdict(list)
     unique_sources = np.unique(source_nodes)
 
@@ -276,3 +279,4 @@ class TGN(torch.nn.Module):
   def set_neighbor_finder(self, neighbor_finder):
     self.neighbor_finder = neighbor_finder
     self.embedding_module.neighbor_finder = neighbor_finder
+    self.message_function.neighbor_finder = neighbor_finder

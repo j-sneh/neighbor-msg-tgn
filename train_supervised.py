@@ -43,7 +43,7 @@ parser.add_argument('--use_memory', action='store_true',
 parser.add_argument('--embedding_module', type=str, default="graph_attention", choices=[
   "graph_attention", "graph_sum", "identity", "time"], help='Type of embedding module')
 parser.add_argument('--message_function', type=str, default="identity", choices=[
-  "mlp", "identity"], help='Type of message function')
+  "mlp", "identity", "neighbor"], help='Type of message function')
 parser.add_argument('--aggregator', type=str, default="last", help='Type of message '
                                                                         'aggregator')
 parser.add_argument('--memory_update_at_end', action='store_true',
@@ -123,7 +123,7 @@ max_idx = max(full_data.unique_nodes)
 train_ngh_finder = get_neighbor_finder(train_data, uniform=UNIFORM, max_node_idx=max_idx)
 
 # Set device
-device_string = 'cuda:{}'.format(GPU) if torch.cuda.is_available() else 'cpu'
+device_string = 'cuda:{}'.format(GPU) if torch.cuda.is_available() else 'mps' if torch.mps.is_available() else 'cpu'
 device = torch.device(device_string)
 
 # Compute time statistics

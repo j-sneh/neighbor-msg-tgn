@@ -40,7 +40,7 @@ parser.add_argument('--use_memory', action='store_true',
 parser.add_argument('--embedding_module', type=str, default="graph_attention", choices=[
   "graph_attention", "graph_sum", "identity", "time"], help='Type of embedding module')
 parser.add_argument('--message_function', type=str, default="identity", choices=[
-  "mlp", "identity"], help='Type of message function')
+  "mlp", "identity", "neighbor"], help='Type of message function')
 parser.add_argument('--memory_updater', type=str, default="gru", choices=[
   "gru", "rnn"], help='Type of memory updater')
 parser.add_argument('--aggregator', type=str, default="last", help='Type of message '
@@ -132,7 +132,8 @@ nn_test_rand_sampler = RandEdgeSampler(new_node_test_data.sources,
                                        seed=3)
 
 # Set device
-device_string = 'cuda:{}'.format(GPU) if torch.cuda.is_available() else 'cpu'
+device_string = 'cuda:{}'.format(GPU) if torch.cuda.is_available() else 'mps'
+print(device_string)
 device = torch.device(device_string)
 
 # Compute time statistics

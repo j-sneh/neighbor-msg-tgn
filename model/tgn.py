@@ -276,7 +276,8 @@ class TGN(torch.nn.Module):
 
     return unique_sources, messages
 
-  def set_neighbor_finder(self, neighbor_finder):
+  def set_neighbor_finder(self, neighbor_finder, msg_neighbor_finder=None):
     self.neighbor_finder = neighbor_finder
     self.embedding_module.neighbor_finder = neighbor_finder
-    self.message_function.neighbor_finder = neighbor_finder
+    if self.use_memory:
+      self.message_function.neighbor_finder = msg_neighbor_finder if msg_neighbor_finder is not None else neighbor_finder

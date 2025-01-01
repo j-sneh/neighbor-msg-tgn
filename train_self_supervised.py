@@ -122,9 +122,11 @@ print("TEST_DATA:: ", test_data)
 
 # Initialize training neighbor finder to retrieve temporal graph
 train_ngh_finder = get_neighbor_finder(train_data, args.uniform)
+msg_train_ngh_finder = get_neighbor_finder(train_data, uniform=True)
 
 # Initialize validation and test neighbor finder to retrieve temporal graph
 full_ngh_finder = get_neighbor_finder(full_data, args.uniform)
+msg_full_ngh_finder = get_neighbor_finder(full_data, uniform=True)
 
 # Initialize negative samplers. Set seeds for validation and testing so negatives are the same
 # across different runs
@@ -196,7 +198,7 @@ for i in range(args.n_runs):
       tgn.memory.__init_memory__()
 
     # Train using only training graph
-    tgn.set_neighbor_finder(train_ngh_finder)
+    tgn.set_neighbor_finder(train_ngh_finder, msg_neighbor_finder=msg_train_ngh_finder)
     m_loss = []
 
     logger.info('start {} epoch'.format(epoch))
@@ -247,7 +249,7 @@ for i in range(args.n_runs):
 
     ### Validation
     # Validation uses the full graph
-    tgn.set_neighbor_finder(full_ngh_finder)
+    tgn.set_neighbor_finder(full_ngh_finder, msg_neighbor_finder=msg_full_ngh_finder)
 
     if USE_MEMORY:
       # Backup memory at the end of training, so later we can restore it and use it for the

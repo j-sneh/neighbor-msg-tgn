@@ -13,6 +13,11 @@ from model.tgn import TGN
 from utils.utils import EarlyStopMonitor, RandEdgeSampler, get_neighbor_finder
 from utils.data_processing import get_data, compute_time_statistics
 
+# my imports
+import matplotlib.pyplot as plt
+
+from sklearn.manifold import TSNE
+
 torch.manual_seed(0)
 np.random.seed(0)
 
@@ -113,6 +118,8 @@ node_features, edge_features, full_data, train_data, val_data, test_data, new_no
 new_node_test_data = get_data(DATA,
                               different_new_nodes_between_val_and_test=args.different_new_nodes, randomize_features=args.randomize_features)
 
+print("TEST_DATA:: ", test_data)
+
 # Initialize training neighbor finder to retrieve temporal graph
 train_ngh_finder = get_neighbor_finder(train_data, args.uniform)
 
@@ -132,7 +139,8 @@ nn_test_rand_sampler = RandEdgeSampler(new_node_test_data.sources,
                                        seed=3)
 
 # Set device
-device_string = 'cuda:{}'.format(GPU) if torch.cuda.is_available() else 'mps'
+device_string = 'cuda:{}'.format(GPU) if torch.cuda.is_available() else 'mps' if torch.mps.is_available() else 'cpu'
+device_string =  'cuda:{}'.format(GPU) if torch.cuda.is_available() else 'cpu'
 print(device_string)
 device = torch.device(device_string)
 
@@ -345,3 +353,27 @@ for i in range(args.n_runs):
     tgn.memory.restore_memory(val_memory_backup)
   torch.save(tgn.state_dict(), MODEL_SAVE_PATH)
   logger.info('TGN model saved')
+
+  all_nodes_sd = np.concatenate([full_data.sources, full_data.destinations])
+  all_timestamps = np.concatenate([full_data.timestamps, full_data.timestamps])
+
+  all_nodes = np.arange(tgn.n_nodes)
+  last_timestamp = np.ones(all_nodes.shape[0]) * full_data.timestamps.max()
+
+  embeddings = tgn.embedding_module.compute_embedding(tgn.memory.get_memory(all_nodes),all_nodes, last_timestamp, n_layers=NUM_LAYER)
+  print("embedding size: ", embeddings.size())
+
+  bc = np.bincount(np.concatenate([full_data.sources, full_data.destinations]))
+  top = np.argsort(bc)[::-1][:30] # top 30 nodes
+
+
+
+  print("embeddings done, now tsne")
+  reduction = TSNE(n_components=2, learning_rate='auto', init='random').fit_transform(embeddings.detach().cpu().numpy())
+
+  # plot all nodes but color the top 20 nodes red
+  plt.scatter(reduction[:, 0], reduction[:, 1], c='b', s=1)
+  plt.scatter(reduction[top, 0], reduction[top, 1], c='r', s=10)
+  l = np.random.randint(10000)
+  print(f"saving tsne in results/embeddings_tsne_{l}.png")
+  plt.savefig(f"results/embeddings_tsne_{l}.png")

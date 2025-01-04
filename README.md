@@ -9,3 +9,7 @@ This is an extension of the original TGN paper, which implements a message funct
 - Calculations of MAD and measures for node representation convergence/oversmoothing
 
 [See the original TGN Repo](https://github.com/twitter-research/tgn)
+
+## Specific Changes
+
+See the updated `train_self_supervised.py`, `modules/message_function.py`, `model/tgn.py`.

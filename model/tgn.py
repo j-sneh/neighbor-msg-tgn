@@ -13,7 +13,7 @@ from model.time_encoding import TimeEncode
 
 
 class TGN(torch.nn.Module):
-  def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers=2,
+  def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers_embedding=2,
                n_heads=2, dropout=0.1, use_memory=False,
                memory_update_at_start=True, message_dimension=100,
                memory_dimension=500, embedding_module_type="graph_attention",
@@ -26,7 +26,7 @@ class TGN(torch.nn.Module):
                dyrep=False):
     super(TGN, self).__init__()
 
-    self.n_layers = n_layers
+    self.n_layers_embedding = n_layers_embedding
     self.neighbor_finder = neighbor_finder
     self.device = device
     self.logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ class TGN(torch.nn.Module):
                                                  memory=self.memory,
                                                  neighbor_finder=self.neighbor_finder,
                                                  time_encoder=self.time_encoder,
-                                                 n_layers=self.n_layers,
+                                                 n_layers=self.n_layers_embedding,
                                                  n_node_features=self.n_node_features,
                                                  n_edge_features=self.n_edge_features,
                                                  n_time_features=self.n_node_features,
@@ -151,7 +151,7 @@ class TGN(torch.nn.Module):
     node_embedding = self.embedding_module.compute_embedding(memory=memory,
                                                              source_nodes=nodes,
                                                              timestamps=timestamps,
-                                                             n_layers=self.n_layers,
+                                                             n_layers=self.n_layers_embedding,
                                                              n_neighbors=n_neighbors,
                                                              time_diffs=time_diffs)
 

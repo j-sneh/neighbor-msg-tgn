@@ -30,7 +30,8 @@ parser.add_argument('--prefix', type=str, default='', help='Prefix to name the c
 parser.add_argument('--n_degree', type=int, default=10, help='Number of neighbors to sample')
 parser.add_argument('--n_head', type=int, default=2, help='Number of heads used in attention layer')
 parser.add_argument('--n_epoch', type=int, default=50, help='Number of epochs')
-parser.add_argument('--n_layer', type=int, default=1, help='Number of network layers')
+parser.add_argument('--n_layer_embedding', type=int, default=1, help='Number of network layers for embedding module')
+parser.add_argument('--n_layer_message', type=int, default=1, help='Number of network layers for message function')
 parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
 parser.add_argument('--patience', type=int, default=5, help='Patience for early stopping')
 parser.add_argument('--n_runs', type=int, default=1, help='Number of runs')
@@ -83,7 +84,8 @@ NUM_HEADS = args.n_head
 DROP_OUT = args.drop_out
 GPU = args.gpu
 DATA = args.data
-NUM_LAYER = args.n_layer
+NUM_LAYER_E = args.n_layer_embedding
+NUM_LAYER_M = args.n_layer_message
 LEARNING_RATE = args.lr
 NODE_DIM = args.node_dim
 TIME_DIM = args.time_dim
@@ -157,7 +159,7 @@ for i in range(args.n_runs):
   # Initialize Model
   tgn = TGN(neighbor_finder=train_ngh_finder, node_features=node_features,
             edge_features=edge_features, device=device,
-            n_layers=NUM_LAYER,
+            n_layers_embedding=NUM_LAYER_E,
             n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
             message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
             memory_update_at_start=not args.memory_update_at_end,
@@ -362,7 +364,7 @@ for i in range(args.n_runs):
   all_nodes = np.arange(tgn.n_nodes)
   last_timestamp = np.ones(all_nodes.shape[0]) * full_data.timestamps.max()
 
-  embeddings = tgn.embedding_module.compute_embedding(tgn.memory.get_memory(all_nodes),all_nodes, last_timestamp, n_layers=NUM_LAYER)
+  embeddings = tgn.embedding_module.compute_embedding(tgn.memory.get_memory(all_nodes),all_nodes, last_timestamp, n_layers=NUM_LAYER_E)
   print("embedding size: ", embeddings.size())
 
   bc = np.bincount(np.concatenate([full_data.sources, full_data.destinations]))

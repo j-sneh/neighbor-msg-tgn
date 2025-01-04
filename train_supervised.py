@@ -139,7 +139,7 @@ for i in range(args.n_runs):
   # Initialize Model
   tgn = TGN(neighbor_finder=train_ngh_finder, node_features=node_features,
             edge_features=edge_features, device=device,
-            n_layers=NUM_LAYER,
+            n_layers_embedding=NUM_LAYER,
             n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
             message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
             memory_update_at_start=not args.memory_update_at_end,

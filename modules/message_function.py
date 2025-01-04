@@ -33,7 +33,7 @@ class IdentityMessageFunction(MessageFunction):
     return raw_messages
 
 class NeighborMessageFunction(MessageFunction):
-  def __init__(self, raw_message_dimension, message_dimension, neighbor_dimension, neighbor_finder, device, n_neighbors=20):
+  def __init__(self, raw_message_dimension, message_dimension, neighbor_dimension, neighbor_finder, device, n_neighbors=20, n_layers=1):
     super(NeighborMessageFunction, self).__init__()
 
     self.neighbor_finder = neighbor_finder
@@ -62,8 +62,6 @@ class NeighborMessageFunction(MessageFunction):
         timestamps.cpu(),
         n_neighbors=self.n_neighbors)
     
-
-
 
     # print("neighbors shape: ", neighbors.shape)
     # print("neighbors: ", neighbors)
@@ -96,7 +94,7 @@ def get_message_function(module_type, raw_message_dimension, message_dimension, 
   if module_type == "mlp":
     return MLPMessageFunction(raw_message_dimension, message_dimension)
   elif module_type == "neighbor":
-    return NeighborMessageFunction(raw_message_dimension, message_dimension, memory_dimension, neighbor_finder, device, n_neighbors)
+    return NeighborMessageFunction(raw_message_dimension, message_dimension, memory_dimension, neighbor_finder, device, n_neighbors=n_neighbors, n_layers=1)
   elif module_type == "identity":
     return IdentityMessageFunction()
 

@@ -131,7 +131,7 @@ class NeighborFinder:
 
     return self.node_to_neighbors[src_idx][:i], self.node_to_edge_idxs[src_idx][:i], self.node_to_edge_timestamps[src_idx][:i]
 
-  def get_temporal_neighbor(self, source_nodes, timestamps, n_neighbors=20):
+  def get_temporal_neighbor(self, source_nodes, timestamps, n_neighbors=20, uniform=None):
     """
     Given a list of users ids and relative cut times, extracts a sampled temporal neighborhood of each user in the list.
 
@@ -140,6 +140,7 @@ class NeighborFinder:
     src_idx_l: List[int]
     cut_time_l: List[float],
     num_neighbors: int
+    uniform: bool or None
     """
     assert (len(source_nodes) == len(timestamps))
 
@@ -157,7 +158,7 @@ class NeighborFinder:
                                                    timestamp)  # extracts all neighbors, interactions indexes and timestamps of all interactions of user source_node happening before cut_time
 
       if len(source_neighbors) > 0 and n_neighbors > 0:
-        if self.uniform:  # if we are applying uniform sampling, shuffles the data above before sampling
+        if (uniform is None and self.uniform) or uniform:  # if we are applying uniform sampling, shuffles the data above before sampling
           sampled_idx = np.random.randint(0, len(source_neighbors), n_neighbors)
 
           neighbors[i, :] = source_neighbors[sampled_idx]

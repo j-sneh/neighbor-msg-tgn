@@ -60,7 +60,8 @@ class NeighborMessageFunction(MessageFunction):
     neighbors, edge_idxs, edge_times = self.neighbor_finder.get_temporal_neighbor(
         source_nodes,
         timestamps.cpu(),
-        n_neighbors=self.n_neighbors)
+        n_neighbors=self.n_neighbors,
+        uniform=True)
     
 
     # print("neighbors shape: ", neighbors.shape)

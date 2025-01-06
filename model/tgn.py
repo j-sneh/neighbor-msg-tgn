@@ -165,8 +165,10 @@ class TGN(torch.nn.Module):
         # new messages for them)
         self.update_memory(positives, self.memory.messages)
 
-        assert torch.allclose(memory[positives], self.memory.get_memory(positives), atol=1e-5), \
-          "Something wrong in how the memory was updated"
+        # assert torch.allclose(memory[positives], self.memory.get_memory(positives), atol=1e-5), \
+        #   "Something wrong in how the memory was updated"
+
+        # This assertion is no longer needed since we may update the memory if the neighbor message function is used
 
         # Remove messages for the positives since we have already updated the memory using them
         self.memory.clear_messages(positives)
@@ -276,8 +278,7 @@ class TGN(torch.nn.Module):
 
     return unique_sources, messages
 
-  def set_neighbor_finder(self, neighbor_finder, msg_neighbor_finder=None):
+  def set_neighbor_finder(self, neighbor_finder):
     self.neighbor_finder = neighbor_finder
     self.embedding_module.neighbor_finder = neighbor_finder
-    if self.use_memory:
-      self.message_function.neighbor_finder = msg_neighbor_finder if msg_neighbor_finder is not None else neighbor_finder
+    self.message_function.neighbor_finder = neighbor_finder

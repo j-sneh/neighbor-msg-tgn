@@ -114,21 +114,21 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 logger.info(args)
+# ignore matplotlib debug messages
+plt.set_loglevel(level = 'warning')
+pil_logger = logging.getLogger('PIL')
+pil_logger.setLevel(logging.INFO)
 
 ### Extract data for training, validation and testing
 node_features, edge_features, full_data, train_data, val_data, test_data, new_node_val_data, \
 new_node_test_data = get_data(DATA,
                               different_new_nodes_between_val_and_test=args.different_new_nodes, randomize_features=args.randomize_features)
 
-print("TEST_DATA:: ", test_data)
-
 # Initialize training neighbor finder to retrieve temporal graph
 train_ngh_finder = get_neighbor_finder(train_data, args.uniform)
-msg_train_ngh_finder = get_neighbor_finder(train_data, uniform=True)
 
 # Initialize validation and test neighbor finder to retrieve temporal graph
 full_ngh_finder = get_neighbor_finder(full_data, args.uniform)
-msg_full_ngh_finder = get_neighbor_finder(full_data, uniform=True)
 
 # Initialize negative samplers. Set seeds for validation and testing so negatives are the same
 # across different runs
@@ -152,8 +152,8 @@ device = torch.device(device_string)
 mean_time_shift_src, std_time_shift_src, mean_time_shift_dst, std_time_shift_dst = \
   compute_time_statistics(full_data.sources, full_data.destinations, full_data.timestamps)
 
-for i in range(args.n_runs):
-  results_path = "results/{}_{}.pkl".format(args.prefix, i) if i > 0 else "results/{}.pkl".format(args.prefix)
+for run in range(args.n_runs):
+  results_path = "results/{}_{}.pkl".format(args.prefix, run) if run > 0 else "results/{}.pkl".format(args.prefix)
   Path("results/").mkdir(parents=True, exist_ok=True)
 
   # Initialize Model
@@ -200,7 +200,7 @@ for i in range(args.n_runs):
       tgn.memory.__init_memory__()
 
     # Train using only training graph
-    tgn.set_neighbor_finder(train_ngh_finder, msg_neighbor_finder=msg_train_ngh_finder)
+    tgn.set_neighbor_finder(train_ngh_finder)
     m_loss = []
 
     logger.info('start {} epoch'.format(epoch))
@@ -251,7 +251,7 @@ for i in range(args.n_runs):
 
     ### Validation
     # Validation uses the full graph
-    tgn.set_neighbor_finder(full_ngh_finder, msg_neighbor_finder=msg_full_ngh_finder)
+    tgn.set_neighbor_finder(full_ngh_finder)
 
     if USE_MEMORY:
       # Backup memory at the end of training, so later we can restore it and use it for the
@@ -340,6 +340,42 @@ for i in range(args.n_runs):
     'Test statistics: Old nodes -- auc: {}, ap: {}'.format(test_auc, test_ap))
   logger.info(
     'Test statistics: New nodes -- auc: {}, ap: {}'.format(nn_test_auc, nn_test_ap))
+  
+  all_nodes = np.arange(tgn.n_nodes) 
+  last_timestamp = np.ones(all_nodes.shape[0]) * full_data.timestamps.max()
+
+  embeddings = tgn.embedding_module.compute_embedding(tgn.memory.get_memory(all_nodes), all_nodes, last_timestamp, n_layers=NUM_LAYER_E)
+  print("embedding size: ", embeddings.size())
+
+  bc = np.bincount(np.concatenate([full_data.sources, full_data.destinations]))
+  print("bincount: ", bc)
+  top = np.argsort(bc)[::-1][:30] # top 30 nodes
+
+  # calculate dirichlet energy and mean average distance
+  X = embeddings.detach().cpu().numpy()
+  neighbors, _, _ = full_ngh_finder.get_temporal_neighbor(all_nodes, last_timestamp, n_neighbors=tgn.n_nodes) # get all neighbors
+
+  node_degrees = np.array([np.count_nonzero(neighbor_list) for neighbor_list in neighbors])
+  print("node degrees: ", node_degrees)
+
+  dirichlet_energy = 0
+  mad = 0
+  for node in all_nodes[1:]: # skip 0 since it's a dummy node
+    neighbor_idxs = neighbors[node].copy()
+    neighbor_idxs = neighbor_idxs[neighbor_idxs != 0]
+    if len(neighbor_idxs) == 0:
+      continue
+
+    for neighbor in neighbor_idxs:
+      X_diff = X[node] - X[neighbor]
+      dirichlet_energy += np.dot(X_diff, X_diff)
+      mad += 1 - np.dot(X[node], X[neighbor]) / (np.linalg.norm(X[node]) * np.linalg.norm(X[neighbor]))
+  dirichlet_energy /= (tgn.n_nodes - 1) # normalize by number of vertices
+  dirichlet_energy = np.sqrt(dirichlet_energy) # make it same scale as MAD
+  mad /= (tgn.n_nodes - 1)
+  logger.info(f"Dirichlet energy: {dirichlet_energy}")
+  logger.info(f"Mean average distance: {np.mean(node_degrees)}")
+
   # Save results for this run
   pickle.dump({
     "val_aps": val_aps,
@@ -348,7 +384,9 @@ for i in range(args.n_runs):
     "new_node_test_ap": nn_test_ap,
     "epoch_times": epoch_times,
     "train_losses": train_losses,
-    "total_epoch_times": total_epoch_times
+    "total_epoch_times": total_epoch_times,
+    "dirichlet_energy": dirichlet_energy,
+    "mean_average_distance": mad
   }, open(results_path, "wb"))
 
   logger.info('Saving TGN model')
@@ -358,18 +396,10 @@ for i in range(args.n_runs):
   torch.save(tgn.state_dict(), MODEL_SAVE_PATH)
   logger.info('TGN model saved')
 
-  all_nodes_sd = np.concatenate([full_data.sources, full_data.destinations])
-  all_timestamps = np.concatenate([full_data.timestamps, full_data.timestamps])
 
-  all_nodes = np.arange(tgn.n_nodes)
-  last_timestamp = np.ones(all_nodes.shape[0]) * full_data.timestamps.max()
 
-  embeddings = tgn.embedding_module.compute_embedding(tgn.memory.get_memory(all_nodes),all_nodes, last_timestamp, n_layers=NUM_LAYER_E)
-  print("embedding size: ", embeddings.size())
 
-  bc = np.bincount(np.concatenate([full_data.sources, full_data.destinations]))
-  top = np.argsort(bc)[::-1][:30] # top 30 nodes
-
+  
 
 
   print("embeddings done, now tsne")
@@ -378,6 +408,8 @@ for i in range(args.n_runs):
   # plot all nodes but color the top 20 nodes red
   plt.scatter(reduction[:, 0], reduction[:, 1], c='b', s=1)
   plt.scatter(reduction[top, 0], reduction[top, 1], c='r', s=10)
-  l = np.random.randint(10000)
-  print(f"saving tsne in results/embeddings_tsne_{l}.png")
-  plt.savefig(f"results/embeddings_tsne_{l}.png")
+  # for i, node in enumerate(top):
+  #     plt.annotate(i + 1, (reduction[node, 0], reduction[node, 1]), c='r', fontsize=10)  
+  graph_location = f"results/{args.prefix}_{run}_embeddings_tsne.png"
+  print(f"saving tsne in {graph_location}")
+  plt.savefig(f"{graph_location}",dpi=1200)

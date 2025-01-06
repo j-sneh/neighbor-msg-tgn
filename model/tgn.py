@@ -13,7 +13,7 @@ from model.time_encoding import TimeEncode
 
 
 class TGN(torch.nn.Module):
-  def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers_embedding=2,
+  def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers_embedding=2, n_layers_message=1,
                n_heads=2, dropout=0.1, use_memory=False,
                memory_update_at_start=True, message_dimension=100,
                memory_dimension=500, embedding_module_type="graph_attention",
@@ -27,6 +27,7 @@ class TGN(torch.nn.Module):
     super(TGN, self).__init__()
 
     self.n_layers_embedding = n_layers_embedding
+    self.n_layers_message = n_layers_message
     self.neighbor_finder = neighbor_finder
     self.device = device
     self.logger = logging.getLogger(__name__)
@@ -70,6 +71,7 @@ class TGN(torch.nn.Module):
                                                    raw_message_dimension=raw_message_dimension,
                                                    message_dimension=message_dimension, 
                                                    memory_dimension=self.memory_dimension,
+                                                   n_layers=self.n_layers_message,
                                                    neighbor_finder=self.neighbor_finder,
                                                    device=self.device)
       self.memory_updater = get_memory_updater(module_type=memory_updater_type,

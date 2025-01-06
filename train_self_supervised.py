@@ -160,6 +160,7 @@ for run in range(args.n_runs):
   tgn = TGN(neighbor_finder=train_ngh_finder, node_features=node_features,
             edge_features=edge_features, device=device,
             n_layers_embedding=NUM_LAYER_E,
+            n_layers_message=NUM_LAYER_M,
             n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
             message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
             memory_update_at_start=not args.memory_update_at_end,
@@ -205,6 +206,7 @@ for run in range(args.n_runs):
 
     logger.info('start {} epoch'.format(epoch))
     for k in range(0, num_batch, args.backprop_every):
+      logger.debug('batch {}/{}'.format(k, num_batch))
       loss = 0
       optimizer.zero_grad()
 
@@ -355,8 +357,6 @@ for run in range(args.n_runs):
   X = embeddings.detach().cpu().numpy()
   neighbors, _, _ = full_ngh_finder.get_temporal_neighbor(all_nodes, last_timestamp, n_neighbors=tgn.n_nodes) # get all neighbors
 
-  node_degrees = np.array([np.count_nonzero(neighbor_list) for neighbor_list in neighbors])
-  print("node degrees: ", node_degrees)
 
   dirichlet_energy = 0
   mad = 0
@@ -374,7 +374,7 @@ for run in range(args.n_runs):
   dirichlet_energy = np.sqrt(dirichlet_energy) # make it same scale as MAD
   mad /= (tgn.n_nodes - 1)
   logger.info(f"Dirichlet energy: {dirichlet_energy}")
-  logger.info(f"Mean average distance: {np.mean(node_degrees)}")
+  logger.info(f"Mean average distance: {mad}")
 
   # Save results for this run
   pickle.dump({
@@ -395,11 +395,6 @@ for run in range(args.n_runs):
     tgn.memory.restore_memory(val_memory_backup)
   torch.save(tgn.state_dict(), MODEL_SAVE_PATH)
   logger.info('TGN model saved')
-
-
-
-
-  
 
 
   print("embeddings done, now tsne")

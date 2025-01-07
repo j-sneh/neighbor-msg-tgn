@@ -89,6 +89,11 @@ class RandEdgeSampler(object):
 
 
 def get_neighbor_finder(data, uniform, max_node_idx=None):
+  adj_list = calculate_adj_list(data, max_node_idx)
+
+  return NeighborFinder(adj_list, uniform=uniform)
+
+def calculate_adj_list(data, max_node_idx=None):
   max_node_idx = max(data.sources.max(), data.destinations.max()) if max_node_idx is None else max_node_idx
   adj_list = [[] for _ in range(max_node_idx + 1)]
   for source, destination, edge_idx, timestamp in zip(data.sources, data.destinations,
@@ -97,7 +102,7 @@ def get_neighbor_finder(data, uniform, max_node_idx=None):
     adj_list[source].append((destination, edge_idx, timestamp))
     adj_list[destination].append((source, edge_idx, timestamp))
 
-  return NeighborFinder(adj_list, uniform=uniform)
+  return adj_list
 
 
 class NeighborFinder:

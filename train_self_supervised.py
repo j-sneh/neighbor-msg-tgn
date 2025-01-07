@@ -10,8 +10,9 @@ from pathlib import Path
 
 from evaluation.evaluation import eval_edge_prediction
 from model.tgn import TGN
-from utils.utils import EarlyStopMonitor, RandEdgeSampler, get_neighbor_finder
+from utils.utils import EarlyStopMonitor, RandEdgeSampler, get_neighbor_finder, calculate_adj_list
 from utils.data_processing import get_data, compute_time_statistics
+from utils.bipartite import get_partition
 
 # my imports
 import matplotlib.pyplot as plt
@@ -33,7 +34,7 @@ parser.add_argument('--n_epoch', type=int, default=50, help='Number of epochs')
 parser.add_argument('--n_layer_embedding', type=int, default=1, help='Number of network layers for embedding module')
 parser.add_argument('--n_layer_message', type=int, default=1, help='Number of network layers for message function')
 parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
-parser.add_argument('--patience', type=int, default=5, help='Patience for early stopping')
+parser.add_argument('--patience', type=int, default=3, help='Patience for early stopping')
 parser.add_argument('--n_runs', type=int, default=1, help='Number of runs')
 parser.add_argument('--drop_out', type=float, default=0.1, help='Dropout probability')
 parser.add_argument('--gpu', type=int, default=0, help='Idx for the gpu to use')
@@ -152,6 +153,22 @@ device = torch.device(device_string)
 mean_time_shift_src, std_time_shift_src, mean_time_shift_dst, std_time_shift_dst = \
   compute_time_statistics(full_data.sources, full_data.destinations, full_data.timestamps)
 
+# Comp
+n_nodes = node_features.shape[0]
+all_nodes = np.arange(n_nodes)
+last_timestamp = np.ones(all_nodes.shape[0]) * full_data.timestamps.max()
+bipartite = True
+A, B = None, None
+try:
+  A, B = get_partition(calculate_adj_list(full_data))
+  A, B = np.array(list(A)), np.array(list(B))
+except ValueError:
+  bipartite = False
+
+bc = np.bincount(np.concatenate([full_data.sources, full_data.destinations]))
+print("bincount: ", bc)
+top = np.argsort(bc)[::-1][:30] # top 30 nodes
+
 for run in range(args.n_runs):
   results_path = "results/{}_{}.pkl".format(args.prefix, run) if run > 0 else "results/{}.pkl".format(args.prefix)
   Path("results/").mkdir(parents=True, exist_ok=True)
@@ -206,7 +223,7 @@ for run in range(args.n_runs):
 
     logger.info('start {} epoch'.format(epoch))
     for k in range(0, num_batch, args.backprop_every):
-      logger.debug('batch {}/{}'.format(k, num_batch))
+      # logger.debug('batch {}/{}'.format(k, num_batch))
       loss = 0
       optimizer.zero_grad()
 
@@ -342,16 +359,10 @@ for run in range(args.n_runs):
     'Test statistics: Old nodes -- auc: {}, ap: {}'.format(test_auc, test_ap))
   logger.info(
     'Test statistics: New nodes -- auc: {}, ap: {}'.format(nn_test_auc, nn_test_ap))
-  
-  all_nodes = np.arange(tgn.n_nodes) 
-  last_timestamp = np.ones(all_nodes.shape[0]) * full_data.timestamps.max()
 
   embeddings = tgn.embedding_module.compute_embedding(tgn.memory.get_memory(all_nodes), all_nodes, last_timestamp, n_layers=NUM_LAYER_E)
-  print("embedding size: ", embeddings.size())
+  # print("embedding size: ", embeddings.size())
 
-  bc = np.bincount(np.concatenate([full_data.sources, full_data.destinations]))
-  print("bincount: ", bc)
-  top = np.argsort(bc)[::-1][:30] # top 30 nodes
 
   # calculate dirichlet energy and mean average distance
   X = embeddings.detach().cpu().numpy()
@@ -401,10 +412,18 @@ for run in range(args.n_runs):
   reduction = TSNE(n_components=2, learning_rate='auto', init='random').fit_transform(embeddings.detach().cpu().numpy())
 
   # plot all nodes but color the top 20 nodes red
-  plt.scatter(reduction[:, 0], reduction[:, 1], c='b', s=1)
-  plt.scatter(reduction[top, 0], reduction[top, 1], c='r', s=10)
+  plt.figure()
+  plt.title(f"Embeddings of {args.data} dataset from {args.prefix}")
+  if bipartite:
+    plt.scatter(reduction[A, 0], reduction[A, 1], c='b', s=1)
+    plt.scatter(reduction[B, 0], reduction[B, 1], c='mediumseagreen', s=1)
+    plt.scatter(reduction[top, 0], reduction[top, 1], c='r', s=10)
+  else:
+    plt.scatter(reduction[:, 0], reduction[:, 1], c='b', s=1)
+    plt.scatter(reduction[top, 0], reduction[top, 1], c='r', s=10)
   # for i, node in enumerate(top):
   #     plt.annotate(i + 1, (reduction[node, 0], reduction[node, 1]), c='r', fontsize=10)  
   graph_location = f"results/{args.prefix}_{run}_embeddings_tsne.png"
   print(f"saving tsne in {graph_location}")
   plt.savefig(f"{graph_location}",dpi=1200)
+  plt.close()

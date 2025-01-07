@@ -6,10 +6,27 @@ This is an extension of the original TGN paper, which implements a message funct
 
 - Added --message_function "neighbor" as one of possible arguments for the script
 - Plotting of T-SNE dimension reduction for each model trial
-- Calculations of MAD and measures for node representation convergence/oversmoothing
+- Calculations of MAD and measures for node representation convergence
 
 [See the original TGN Repo](https://github.com/twitter-research/tgn)
 
-## Specific Changes
+## Running Experiments
 
-See the updated `train_self_supervised.py`, `modules/message_function.py`, `model/tgn.py`.
+For Experiment 1 (Full tgn-attn model with added neighbor message aggregation), run
+```
+python train_self_supervised.py --use_memory --prefix tgn-attn-neighbormsg --n_runs 5 --message_function neighbor --n_epoch 20
+```
+
+For Experiment 2 (tgn-id model with added neighbor message aggregation), run
+```
+python train_self_supervised.py --use_memory --prefix tgn-id-neighbormsg --n_runs 5 --message_function neighbor --n_epoch 20
+```
+
+For Experiment 3 (tgn-attn model) *baseline*, run
+```
+python train_self_supervised.py --use_memory --prefix tgn-attn --n_runs 5 --message_function identity --n_epoch 20
+```
+
+## Specific Changed Files
+
+See the updated `train_self_supervised.py`, `modules/message_function.py`, `model/tgn.py`, and `utils/bipartite.py`.

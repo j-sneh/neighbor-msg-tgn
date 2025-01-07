@@ -375,7 +375,7 @@ for run in range(args.n_runs):
 
   dirichlet_energy = 0
   mad = 0
-  for node in all_nodes[1:]: # skip 0 since it's a dummy node
+  for node in all_nodes:
     neighbor_idxs = neighbors[node].copy()
     neighbor_idxs = neighbor_idxs[neighbor_idxs != 0]
     if len(neighbor_idxs) == 0:
@@ -385,9 +385,9 @@ for run in range(args.n_runs):
       X_diff = X[node] - X[neighbor]
       dirichlet_energy += np.dot(X_diff, X_diff)
       mad += 1 - np.dot(X[node], X[neighbor]) / (np.linalg.norm(X[node]) * np.linalg.norm(X[neighbor]))
-  dirichlet_energy /= (tgn.n_nodes - 1) # normalize by number of vertices
+  dirichlet_energy /= (tgn.n_nodes) # normalize by number of vertices
   dirichlet_energy = np.sqrt(dirichlet_energy) # make it same scale as MAD
-  mad /= (tgn.n_nodes - 1)
+  mad /= (tgn.n_nodes)
   logger.info(f"Dirichlet energy: {dirichlet_energy}")
   logger.info(f"Mean average distance: {mad}")
 

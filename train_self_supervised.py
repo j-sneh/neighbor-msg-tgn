@@ -363,6 +363,10 @@ for run in range(args.n_runs):
   embeddings = tgn.embedding_module.compute_embedding(tgn.memory.get_memory(all_nodes), all_nodes, last_timestamp, n_layers=NUM_LAYER_E)
   # print("embedding size: ", embeddings.size())
 
+  # write embeddings to file
+  embeddings_path = f"embeddings/{args.prefix}_{run}_embeddings.pkl"
+  pickle.dump(embeddings.detach().cpu().numpy(), open(embeddings_path, "wb"))
+
 
   # calculate dirichlet energy and mean average distance
   X = embeddings.detach().cpu().numpy()

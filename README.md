@@ -27,6 +27,11 @@ For Experiment 3 (tgn-attn model) *baseline*, run
 python train_self_supervised.py --use_memory --prefix tgn-baseline --n_runs 5 --message_function identity --n_epoch 20
 ```
 
+For Experiment 4 (tgn-id model), run
+```
+python train_self_supervised.py --use_memory --prefix tgn-id --n_runs 5 --embedding_module identity --message_function identity --n_epoch 20
+```
+
 ## Specific Changed Files
 
 See the updated `train_self_supervised.py`, `modules/message_function.py`, `model/tgn.py`, and `utils/bipartite.py`.

@@ -6,7 +6,7 @@ This is an extension of the original TGN paper, which implements a message funct
 
 - Added --message_function "neighbor" as one of possible arguments for the script
 - Plotting of T-SNE dimension reduction for each model trial
-- Calculations of MAD and measures for node representation convergence
+- Calculations of Dirichlet energy for node representation convergence
 
 [See the original TGN Repo](https://github.com/twitter-research/tgn)
 

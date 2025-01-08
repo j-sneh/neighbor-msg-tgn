@@ -62,10 +62,6 @@ class NeighborMessageFunction(MessageFunction):
     
     return self.activation(message_term + neighborhood_term)
 
-    # edge_idxs = torch.from_numpy(edge_idxs).long().to(self.device)
-    # edge_deltas = timestamps[:, np.newaxis] - edge_times
-    # edge_deltas_torch = torch.from_numpy(edge_deltas).float().to(self.device)
-
 
 
 def get_message_function(module_type, raw_message_dimension, message_dimension, memory_dimension, neighbor_finder, device, n_neighbors=20, n_layers=1):

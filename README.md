@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This is an extension of the original TGN paper, which implements a message function that aggregates over the neighbors representations stored in memory. Running the code is the same as the original TGN, with the following additions:
+This is an extension (fork) of the original TGN paper, which implements a message function that aggregates over the neighbors representations stored in memory. Running the code is the same as the original TGN, with the following additions:
 
 - Added --message_function "neighbor" as one of possible arguments for the script
 - Plotting of T-SNE dimension reduction for each model trial
